@@ -159,19 +159,22 @@ end function Get_ExpEqn
 !==============================================================================
 
 !==============================================================================
-real(ReKi) function Get_f_from_Lookup( UAMod, Re, alpha, alpha0, C_nalpha_circ, AFInfo, ErrStat, ErrMsg)
+subroutine Get_f_from_Lookup( UAMod, Re, alpha, alpha0, C_nalpha_circ, AFInfo, ErrStat, ErrMsg, f_st, cn_fs)
 ! Compute either fprime or fprimeprime using an analytical equation (and eventually a table lookup)
 ! Called by : ComputeKelvinChain
 ! Calls  to : NONE
 !..............................................................................
-   integer,          intent(in   ) :: UAMod
-   real(ReKi),       intent(in   ) :: Re            ! Reynolds number
-   real(ReKi),       intent(in   ) :: alpha         ! angle of attack (radians)
-   real(ReKi),       intent(in   ) :: alpha0
-   real(ReKi),       intent(in   ) :: C_nalpha_circ
-   type(AFInfoType), intent(in   ) :: AFInfo        ! The airfoil parameter data
-   integer(IntKi),   intent(  out) :: ErrStat               ! Error status of the operation
-   character(*),     intent(  out) :: ErrMsg                ! Error message if ErrStat /= ErrID_None
+   integer,            intent(in   ) :: UAMod
+   real(ReKi),         intent(in   ) :: Re            ! Reynolds number
+   real(ReKi),         intent(in   ) :: alpha         ! angle of attack (radians)
+   real(ReKi),         intent(in   ) :: alpha0
+   real(ReKi),         intent(in   ) :: C_nalpha_circ
+   type(AFInfoType),   intent(in   ) :: AFInfo        ! The airfoil parameter data
+   integer(IntKi),     intent(  out) :: ErrStat               ! Error status of the operation
+   character(*),       intent(  out) :: ErrMsg                ! Error message if ErrStat /= ErrID_None
+   
+   real(ReKi),         intent(  out) :: f_st
+   real(ReKi),optional,intent(  out) :: cn_fs
    
    !real                            :: IntAFCoefs(4)         ! The interpolated airfoil coefficients.
    real(ReKi)                       :: Cn, Cl, Cd, Cm, Cd0, tmpRoot, denom
@@ -216,19 +219,26 @@ real(ReKi) function Get_f_from_Lookup( UAMod, Re, alpha, alpha0, C_nalpha_circ, 
    end if
    
    if (UAMod == UA_Gonzalez) then
-      Get_f_from_Lookup = ((3*sqrt(tmpRoot)-1)/2.0)**2
+      f_st = ((3.0_ReKi*sqrt(tmpRoot)-1)/2.0_ReKi)**2
    else
-      Get_f_from_Lookup = ( 2 * sqrt( tmpRoot ) - 1 ) **2 
+      f_st = ( 2.0_ReKi * sqrt( tmpRoot ) - 1.0_ReKi ) **2 
    end if
    
    
-   if ( Get_f_from_Lookup > 1.0 ) then
-      Get_f_from_Lookup = 1.0_ReKi
+   if ( f_st > 1.0 ) then
+      f_st = 1.0_ReKi      
+   end if
+            
+   if (present(cn_fs)) then
+      if (equalRealNos(f_st,1.0_ReKi)) then
+         cn_fs = 0.0_ReKi
+      else
+         cn_fs = (Cn - C_nalpha_circ*(alpha-alpha0)*f_st) / (1.0_ReKi-f_st); ! modification by Envision Energy
+      end if   
    end if
    
-   
-end function Get_f_from_Lookup      
-
+end subroutine Get_f_from_Lookup      
+!==============================================================================
 
 !==============================================================================
 real(ReKi) function Get_f_c_from_Lookup( Re, alpha, alpha0, c_nalpha_circ, eta_e, AFInfo, ErrStat, ErrMsg)
@@ -349,6 +359,8 @@ subroutine ComputeKelvinChain( i, j, u, p, xd, OtherState, misc, AFInfo, KC, BL_
    real(ReKi)                :: M                                             ! Mach number (-)
    real(ReKi)                :: beta_M                                        ! Prandtl-Glauert compressibility correction factor,  sqrt(1-M**2)
    real(ReKi)                :: beta_M_Sqrd                                   ! square of the Prandtl-Glauert compressibility correction factor,  (1-M**2)
+   real(ReKi)                :: cn_fs
+   real(ReKi)                :: temp_f
                  
    real(ReKi)                :: T_I                                           !
    real(ReKi)                :: Kalpha                                        !
@@ -556,7 +568,7 @@ subroutine ComputeKelvinChain( i, j, u, p, xd, OtherState, misc, AFInfo, KC, BL_
    KC%alpha_f       = KC%Cn_prime / KC%C_nalpha_circ + BL_p%alpha0                                                            ! Eqn 1.34
    
    if (p%flookup) then
-      KC%fprime = Get_f_from_Lookup( p%UAMod, u%Re, KC%alpha_f, BL_p%alpha0, KC%C_nalpha_circ, AFInfo, ErrStat2, ErrMsg2)     ! Solve Eqn 1.32a for f when alpha is replaced with alpha_f (see issue when KC%C_nalpha_circ is 0) 
+      call Get_f_from_Lookup( p%UAMod, u%Re, KC%alpha_f, BL_p%alpha0, KC%C_nalpha_circ, AFInfo, ErrStat2, ErrMsg2, KC%fprime)     ! Solve Eqn 1.32a for f (=KC%fprime) when alpha is replaced with alpha_f (see issue when KC%C_nalpha_circ is 0) 
       call SetErrStat(ErrStat2,ErrMsg2,ErrStat,ErrMsg,RoutineName)
       if (ErrStat >= AbortErrLev) return
    else   
@@ -594,11 +606,14 @@ subroutine ComputeKelvinChain( i, j, u, p, xd, OtherState, misc, AFInfo, KC, BL_
    end if
    
     
-   if ( p%UAMod == UA_Gonzalez ) then
-      KC%Cn_FS   = KC%Cn_alpha_q_nc + KC%Cn_alpha_q_circ *  ( (1.0_ReKi + 2.0_ReKi*sqrt(KC%fprimeprime) ) / 3.0_ReKi )**2     ! Eqn 1.39 [bjj: note that KC%Cn_alpha_q_circ doesn't match the equation 1.39 for the Gonzales model]
-   else
-      KC%Cn_FS   = KC%Cn_alpha_q_nc + KC%Cn_alpha_q_circ *  ( (1.0_ReKi +          sqrt(KC%fprimeprime) ) / 2.0_ReKi )**2     ! Eqn 1.38   
-   end if
+   !if ( p%UAMod == UA_Gonzalez ) then
+   !   KC%Cn_FS   = KC%Cn_alpha_q_nc + KC%Cn_alpha_q_circ *  ( (1.0_ReKi + 2.0_ReKi*sqrt(KC%fprimeprime) ) / 3.0_ReKi )**2     ! Eqn 1.39 [bjj: note that KC%Cn_alpha_q_circ doesn't match the equation 1.39 for the Gonzales model]
+   !else
+   !   KC%Cn_FS   = KC%Cn_alpha_q_nc + KC%Cn_alpha_q_circ *  ( (1.0_ReKi +          sqrt(KC%fprimeprime) ) / 2.0_ReKi )**2     ! Eqn 1.38         
+   !end if
+   CALL Get_f_from_Lookup( p%UAMod, u%Re, KC%alpha_e+BL_p%alpha0, BL_p%alpha0, KC%C_nalpha_circ, AFInfo, ErrStat2, ErrMsg2, temp_f, cn_fs)
+   KC%Cn_FS   = KC%Cn_alpha_q_nc + KC%C_nalpha_circ * KC%alpha_e*KC%fprimeprime + cn_fs*(1-KC%fprimeprime)
+   
    
       
    if ( p%UAMod == UA_MinemmaPierce ) then
@@ -1363,7 +1378,7 @@ subroutine UA_CalcOutput( u, p, xd, OtherState, AFInfo, y, misc, ErrStat, ErrMsg
          else
             if ( p%flookup ) then 
               ! if (p%UAMod == UA_Baseline) then
-              !    f      = Get_f_from_Lookup( p%UAMod, u%Re, KC%alpha_filt_cur, BL_p%alpha0, KC%C_nalpha_circ, AFInfo, ErrStat2, ErrMsg2)
+              !    call Get_f_from_Lookup( p%UAMod, u%Re, KC%alpha_filt_cur, BL_p%alpha0, KC%C_nalpha_circ, AFInfo, ErrStat2, ErrMsg2, f) ![solve for f]
               ! else   
                ! TODO: Need to understand the effect of the offset on this f in the following equations and fprimeprime_c.
                   !bjj: fprimeprime_c is computed with the Gonzalez offset in the Kelvin Chain, so it's not just f that could be a problem.
