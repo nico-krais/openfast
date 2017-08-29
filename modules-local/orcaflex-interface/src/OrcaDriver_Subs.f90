@@ -1979,7 +1979,8 @@ SUBROUTINE PointsForce_OutputWrite(ProgInfo, OutUnit, OutFileName, InputFileName
 
    IF ( AnglesInDegrees ) THEN
       CALL WrNumAryFileNR( OutUnit,   (/ REAL(Time, ReKi),                                                                    &
-                     u%PtfmMesh%TranslationDisp(1,1), u%PtfmMesh%TranslationDisp(2,1), u%PtfmMesh%TranslationDisp(3,1),       &
+                     REAL(u%PtfmMesh%TranslationDisp(1,1),ReKi),REAL(u%PtfmMesh%TranslationDisp(2,1),ReKi),                   &
+                     REAL(u%PtfmMesh%TranslationDisp(3,1),ReKi),                                                              &
                      rotdisp(1)*R2D,                  rotdisp(2)*R2D,                  rotdisp(3)*R2D,                        &
                      u%PtfmMesh%TranslationVel(1,1),  u%PtfmMesh%TranslationVel(2,1),  u%PtfmMesh%TranslationVel(3,1),        &
                      u%PtfmMesh%RotationVel(1,1)*R2D, u%PtfmMesh%RotationVel(2,1)*R2D, u%PtfmMesh%RotationVel(3,1)*R2D  /),   &
@@ -1988,7 +1989,8 @@ SUBROUTINE PointsForce_OutputWrite(ProgInfo, OutUnit, OutFileName, InputFileName
       WRITE (OutUnit,'(A)', IOSTAT=ErrStatTmp ) ''
    ELSE
       CALL WrNumAryFileNR( OutUnit,   (/ REAL(Time, ReKi),                                                                    &
-                     u%PtfmMesh%TranslationDisp(1,1), u%PtfmMesh%TranslationDisp(2,1), u%PtfmMesh%TranslationDisp(3,1),       &
+                     REAL(u%PtfmMesh%TranslationDisp(1,1),ReKi),REAL(u%PtfmMesh%TranslationDisp(2,1),ReKi),                   &
+                     REAL(u%PtfmMesh%TranslationDisp(3,1),ReKi),                                                              &
                      rotdisp(1),                      rotdisp(2),                      rotdisp(3),                            &
                      u%PtfmMesh%TranslationVel(1,1),  u%PtfmMesh%TranslationVel(2,1),  u%PtfmMesh%TranslationVel(3,1),        &
                      u%PtfmMesh%RotationVel(1,1),     u%PtfmMesh%RotationVel(2,1),     u%PtfmMesh%RotationVel(3,1)      /),   &
