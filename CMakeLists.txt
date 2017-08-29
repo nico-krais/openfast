@@ -23,6 +23,7 @@ include(${CMAKE_SOURCE_DIR}/cmake/FastFortranOptions.cmake)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 # CMake Configuration variables
+set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS Debug Release)
 if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release" CACHE STRING
     "Choose the build type: Debug Release" FORCE)
