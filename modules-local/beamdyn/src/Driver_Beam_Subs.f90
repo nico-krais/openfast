@@ -23,6 +23,8 @@ module BeamDyn_driver_subs
    USE BeamDyn
    USE BeamDyn_Subs
 
+   IMPLICIT NONE
+
   ! Variables for multi-point loads
    TYPE , PUBLIC :: BD_DriverInternalType
       REAL(ReKi)     , DIMENSION(1:6)               :: DistrLoad        !< Constant distributed load along beam axis, 3 forces and 3 moments [-]
@@ -73,6 +75,7 @@ module BeamDyn_driver_subs
    REAL(BDKi)                   :: TmpReAry(7)
    INTEGER(IntKi)               :: UnIn                         ! Unit number for reading file
    INTEGER(IntKi)               :: ErrStat2                     ! Temporary Error status
+   INTEGER(IntKi)               :: IOS                          ! Temporary Error status
    CHARACTER(ErrMsgLen)         :: ErrMsg2                      ! Temporary Error message
    character(*), parameter      :: RoutineName = 'BD_ReadDvrFile'
    character(1024)              :: line
