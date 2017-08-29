@@ -26,6 +26,7 @@ target_include_directories(mapcpplib PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/lapack>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/simclist>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>)
+target_link_libraries(mapcpplib nwtclibs)
 
 add_library(maplib
   src/map.f90
