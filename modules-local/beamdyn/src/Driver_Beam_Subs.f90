@@ -85,7 +85,6 @@ module BeamDyn_driver_subs
    CHARACTER(1024)              :: PriPath                      ! Path name of the primary file
 
    INTEGER(IntKi)               :: i
-   INTEGER(IntKi)               :: IOS
 !------------------------------------------------------------------------------------
 
    ! Initialize some variables:
