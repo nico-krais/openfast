@@ -1,7 +1,7 @@
 !**********************************************************************************************************************************
 ! LICENSING
 ! Copyright (C) 2015-2016  National Renewable Energy Laboratory
-! Copyright (C) 2016-2017  Envision Energy USA, LTD   
+! Copyright (C) 2016-2017  Envision Energy USA, LTD
 !
 !    This file is part of the NWTC Subroutine Library.
 !
@@ -85,6 +85,7 @@ module BeamDyn_driver_subs
    CHARACTER(1024)              :: PriPath                      ! Path name of the primary file
 
    INTEGER(IntKi)               :: i
+   INTEGER(IntKi)               :: IOS
 !------------------------------------------------------------------------------------
 
    ! Initialize some variables:
