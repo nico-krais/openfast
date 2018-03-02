@@ -708,7 +708,7 @@ subroutine SetParameters(InitInp, InputFileData, p, ErrStat, ErrMsg)
    p%dt             = InputFileData%DTBeam         ! Time step size
    CALL BD_TiSchmComputeCoefficients(p)            ! Compute generalized-alpha time integrator coefficients requires p%rhoinf,p%dt; sets p%coef
 
-   p%niter      = InputFileData%NRMax              ! Maximum number of iterations in Newton-Ralphson algorithm
+   p%niter      = InputFileData%NRMax              ! Maximum number of iterations in Newton-Raphson algorithm
    p%tol        = InputFileData%stop_tol           ! Tolerance used in stopping criterion
    p%elem_total = InputFileData%member_total       ! Total number of elements
    p%nodes_per_elem  = InputFileData%order_elem + 1     ! Number of GLL nodes per element
@@ -1634,14 +1634,8 @@ SUBROUTINE BD_CalcOutput( t, u, p, x, xd, z, OtherState, y, m, ErrStat, ErrMsg )
    x_tmp%dqdt(1:3,1) = m%u%RootMotion%TranslationVel(:,1)
    x_tmp%dqdt(4:6,1) = m%u%Rootmotion%RotationVel(:,1)
 
-      ! Root velocities/angular velocities and accelerations/angular accelerations
-      
-   
-      
       ! Calculate Quadrature point values needed for BldForce results 
    CALL BD_QuadraturePointData( p,x_tmp,m )   ! Calculate QP values uuu, uup, RR0, kappa, E1
-   
- 
 
    IF(p%analysis_type .EQ. BD_DYNAMIC_ANALYSIS) THEN
 
@@ -3308,10 +3302,19 @@ SUBROUTINE BD_Static(t,u,utimes,p,x,OtherState,m,ErrStat,ErrMsg)
                CALL WrScr( "Maxium number of load steps reached. Exit BeamDyn")
                EXIT
            ENDIF
-           i=i+1
-           call WrScr( "Warning: Load may be too large, BeamDyn will attempt to solve with additional steps.")
-           call WrScr( "  Load_Step="//trim(num2lstr(i)) )
-           x%q = 0.0_BDKi
+
+               ! Warn the user that additional steps are needed.
+          if (i==1) call WrScr( "Warning: Load may be too large, BeamDyn will attempt to solve with additional steps.")
+
+               ! Increment the number of steps
+          i=i+1          call WrScr( "  Load_Step="//trim(num2lstr(i)) )
+
+               ! Reset the displacements
+          x%q = 0.0_BDKi
+               ! If we reached this point, we must reset the err status, otherwise we will report back that this
+               ! failed once a sufficient number of load steps was reached and a solution found.
+          ErrStat = ErrID_None
+          ErrMsg  = ""
        ENDIF
    ENDDO
 
